@@ -1,4 +1,5 @@
-from flask import Flask, render_template, jsonify, request, redirect, make_response
+import json
+from flask import Flask, render_template, jsonify, request, make_response
 from flask_jwt_extended import (
     create_access_token, get_jwt_identity, jwt_required,
     JWTManager, get_jwt, set_access_cookies, unset_jwt_cookies
@@ -33,7 +34,8 @@ def login():
     if not user or user["password"] != password:
         return jsonify({"msg": "Mauvais utilisateur ou mot de passe"}), 401
 
-    access_token = create_access_token(identity={"username": username, "role": user["role"]})
+    # ⚠️ Corrigé : `identity` doit être une chaîne de caractères
+    access_token = create_access_token(identity=json.dumps({"username": username, "role": user["role"]}))
     
     response = jsonify({"msg": "Connexion réussie !"})
     set_access_cookies(response, access_token)  # Stocke le jeton dans un Cookie
@@ -48,13 +50,13 @@ def logout():
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
-    current_user = get_jwt_identity()
+    current_user = json.loads(get_jwt_identity())  # ⚠️ Corrigé : Décoder le JSON
     return jsonify(logged_in_as=current_user), 200
 
 @app.route("/admin", methods=["GET"])
 @jwt_required()
 def admin():
-    current_user = get_jwt_identity()
+    current_user = json.loads(get_jwt_identity())  # ⚠️ Corrigé : Décoder le JSON
     
     if current_user["role"] != "admin":
         return jsonify({"msg": "Accès refusé. Vous n'êtes pas administrateur."}), 403
